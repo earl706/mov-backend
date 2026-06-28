@@ -1,8 +1,3 @@
-"""Root URL configuration for the Mov API.
-
-All feature routers are mounted under /api/. JWT auth lives under /api/auth/.
-OpenAPI schema + Swagger UI are served under /api/schema/ and /api/docs/.
-"""
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
@@ -22,7 +17,7 @@ api_patterns = [
     path("", include("apps.knowledge.urls")),
     path("", include("apps.analytics.urls")),
     path("", include("apps.search.urls")),
-    # Docs
+
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "docs/",

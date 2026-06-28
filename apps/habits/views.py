@@ -8,9 +8,8 @@ from apps.common.viewsets import OwnedModelViewSet
 from .models import Habit, HabitLog
 from .serializers import HabitLogSerializer, HabitSerializer
 
-
 class HabitViewSet(OwnedModelViewSet):
-    """Habits with a one-tap `check_in` action and momentum in the payload."""
+
 
     serializer_class = HabitSerializer
     queryset = Habit.objects.all().prefetch_related("logs")
@@ -19,7 +18,7 @@ class HabitViewSet(OwnedModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="check-in")
     def check_in(self, request, pk=None):
-        """Log a completion for today (idempotent per day)."""
+
         habit = self.get_object()
         today = timezone.localdate()
         log, created = HabitLog.objects.get_or_create(
@@ -32,11 +31,10 @@ class HabitViewSet(OwnedModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="undo")
     def undo(self, request, pk=None):
-        """Remove today's completion (in case of a mis-tap)."""
+
         habit = self.get_object()
         HabitLog.objects.filter(habit=habit, date=timezone.localdate()).delete()
         return Response(HabitSerializer(habit, context=self.get_serializer_context()).data)
-
 
 class HabitLogViewSet(viewsets.ModelViewSet):
     serializer_class = HabitLogSerializer

@@ -14,9 +14,8 @@ from .serializers import (
 
 User = get_user_model()
 
-
 class RegisterView(generics.CreateAPIView):
-    """Public endpoint to create an account and return the user representation."""
+
 
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -28,13 +27,11 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
-
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
 
-
 class MeView(APIView):
-    """Return / update the authenticated user."""
+
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
@@ -45,9 +42,8 @@ class MeView(APIView):
         serializer.save()
         return Response(serializer.data)
 
-
 class ProfileView(generics.RetrieveUpdateAPIView):
-    """Read/update the user's productivity profile (scoring weights, chronotype)."""
+
 
     serializer_class = ProductivityProfileSerializer
 

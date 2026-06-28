@@ -1,4 +1,4 @@
-#!/Users/earlbenedictc.dumaraog/nameless-productivity-app/backend/backend-env/bin/python
+#!/Users/earlbenedictc.dumaraog/nameless-productivity-app/backend/backend-env/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys

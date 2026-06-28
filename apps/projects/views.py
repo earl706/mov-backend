@@ -9,12 +9,8 @@ from .models import Project
 from .serializers import ProjectSerializer
 from .services import compute_project_health
 
-
 class ProjectViewSet(OwnedModelViewSet):
-    """CRUD for projects plus a `health` detail action.
 
-    Supports filtering by status/favorite, search by name, and ordering.
-    """
 
     serializer_class = ProjectSerializer
     queryset = Project.objects.all().prefetch_related("tasks")
@@ -28,6 +24,6 @@ class ProjectViewSet(OwnedModelViewSet):
     @extend_schema(responses={200: dict})
     @action(detail=True, methods=["get"])
     def health(self, request, pk=None):
-        """Return the live health metrics for a single project."""
+
         project = self.get_object()
         return Response(compute_project_health(project))

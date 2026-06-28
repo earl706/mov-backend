@@ -1,12 +1,10 @@
-"""Celery tasks for analytics rollups and retrospective generation."""
 from celery import shared_task
 
 from .services import build_retrospective, update_profile_snapshot
 
-
 @shared_task
 def refresh_profile_snapshot(user_id):
-    """Recompute and persist a single user's behavioural snapshot."""
+
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
@@ -16,7 +14,6 @@ def refresh_profile_snapshot(user_id):
         return None
     update_profile_snapshot(user)
     return user_id
-
 
 @shared_task
 def generate_retrospective_for_user(user_id):
@@ -30,10 +27,9 @@ def generate_retrospective_for_user(user_id):
     retro = build_retrospective(user)
     return retro.id
 
-
 @shared_task
 def generate_all_retrospectives():
-    """Beat-scheduled weekly job: build a retrospective for every active user."""
+
     from django.contrib.auth import get_user_model
 
     User = get_user_model()

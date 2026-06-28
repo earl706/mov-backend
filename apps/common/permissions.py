@@ -1,12 +1,7 @@
 from rest_framework import permissions
 
-
 class IsOwner(permissions.BasePermission):
-    """Object-level permission: only the owner may access the object.
 
-    Works with any model exposing an `owner` attribute. List querysets should
-    additionally be filtered by owner in the view (see OwnedModelViewSet).
-    """
 
     message = "You do not have permission to access this resource."
 

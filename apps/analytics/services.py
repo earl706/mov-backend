@@ -1,18 +1,3 @@
-"""Behavioural intelligence engine.
-
-This module turns raw activity (tasks, focus sessions, habit logs) into the
-higher-order signals that make Mov distinctive. Everything here is pure-ish
-(reads the DB, returns plain dicts) so it can be called from API views, Celery
-tasks and tests alike.
-
-Signals produced:
-  * focus_by_day            – minutes of deep work per day
-  * context_switching       – interruptions per focus hour (lower is better)
-  * procrastination_trend   – avg delay between a task's due date and completion
-  * consistency             – how evenly effort is spread across days
-  * burnout_risk            – 0..1 composite (long hours + low quality + late nights)
-  * momentum                – rewards steady output without harsh streak resets
-"""
 import statistics
 from collections import defaultdict
 from datetime import timedelta
@@ -23,28 +8,25 @@ from apps.focus.models import FocusSession
 from apps.habits.models import Habit, HabitLog
 from apps.tasks.models import Task
 
-
 def _daterange(days, end=None):
     end = (end or timezone.localdate())
     return [end - timedelta(days=i) for i in range(days - 1, -1, -1)]
-
 
 def focus_by_day(user, days=30):
     since = timezone.now() - timedelta(days=days)
     sessions = FocusSession.objects.filter(owner=user, started_at__gte=since)
     buckets = defaultdict(int)
     for s in sessions:
-        buckets[timezone.localtime(s.started_at).date()] += s.actual_minutes
+        buckets[timezone.localtime(s.started_at).date()] += s.duration_seconds / 60
     return [
         {"date": d.isoformat(), "minutes": buckets.get(d, 0)} for d in _daterange(days)
     ]
 
-
 def context_switching(user, days=30):
-    """Interruptions per focused hour. A proxy for fragmented attention."""
+
     since = timezone.now() - timedelta(days=days)
     sessions = list(FocusSession.objects.filter(owner=user, started_at__gte=since))
-    total_minutes = sum(s.actual_minutes for s in sessions)
+    total_minutes = sum(s.duration_seconds for s in sessions) / 60
     total_interruptions = sum(s.interruptions for s in sessions)
     hours = max(total_minutes / 60, 0.0001)
     return {
@@ -53,12 +35,8 @@ def context_switching(user, days=30):
         "focus_hours": round(hours, 1),
     }
 
-
 def procrastination_trend(user, days=60):
-    """Average lateness (in days) of completed-with-deadline tasks, week by week.
 
-    Positive numbers mean tasks tend to be finished after their due date.
-    """
     since = timezone.now() - timedelta(days=days)
     tasks = Task.objects.filter(
         owner=user, status="done", completed_at__gte=since, due_date__isnull=False
@@ -75,13 +53,8 @@ def procrastination_trend(user, days=60):
     overall = round(statistics.mean([x for v in weekly.values() for x in v]), 2) if weekly else 0.0
     return {"overall_avg_lateness_days": overall, "by_week": trend}
 
-
 def consistency_score(user, days=30):
-    """How evenly effort is distributed. 100 = active every day, 0 = bursty.
 
-    Computed as 100 * (active_days / days) discounted by the coefficient of
-    variation of daily minutes — steady beats spiky.
-    """
     fb = focus_by_day(user, days)
     minutes = [d["minutes"] for d in fb]
     active = [m for m in minutes if m > 0]
@@ -94,13 +67,8 @@ def consistency_score(user, days=30):
     score = 100 * coverage * (1 / (1 + cv))
     return round(min(100.0, score), 1)
 
-
 def momentum_score(user, days=21):
-    """Recency-weighted output: completed tasks + focus blocks.
 
-    Unlike a streak, a single quiet day nudges momentum down a little rather than
-    erasing it, and a couple of productive days restore it quickly.
-    """
     today = timezone.localdate()
     decay = 0.88
     score = 0.0
@@ -116,15 +84,14 @@ def momentum_score(user, days=21):
     for offset in range(days):
         day = today - timedelta(days=offset)
         day_output = completed.get(day, 0) + (focus.get(day.isoformat(), 0) / 60)
-        # Saturating per-day contribution so one heroic day can't peg the score.
+
         score += weight * min(day_output, 4)
         norm += weight * 4
         weight *= decay
     return round(100 * score / norm, 1) if norm else 0.0
 
-
 def burnout_risk(user, days=14):
-    """Composite 0..1 risk from overwork, declining focus quality and late nights."""
+
     since = timezone.now() - timedelta(days=days)
     sessions = list(FocusSession.objects.filter(owner=user, started_at__gte=since))
     if not sessions:
@@ -135,22 +102,21 @@ def burnout_risk(user, days=14):
     qualities = []
     for s in sessions:
         local = timezone.localtime(s.started_at)
-        daily_minutes[local.date()] += s.actual_minutes
+        daily_minutes[local.date()] += s.duration_seconds / 60
         if local.hour >= 22 or local.hour < 5:
             late_night += 1
         qualities.append(s.quality)
 
     avg_daily = statistics.mean(daily_minutes.values())
-    overwork = max(0.0, min(1.0, (avg_daily - 240) / 240))  # ramps up past 4h/day
+    overwork = max(0.0, min(1.0, (avg_daily - 240) / 240))
     late_ratio = late_night / len(sessions)
     quality_drop = max(0.0, (3 - statistics.mean(qualities)) / 3)
 
     risk = 0.5 * overwork + 0.25 * late_ratio + 0.25 * quality_drop
     return round(min(1.0, risk), 2)
 
-
 def behavioral_intelligence(user, days=30):
-    """Bundle all behavioural signals into a single dashboard payload."""
+
     return {
         "range_days": days,
         "focus_by_day": focus_by_day(user, days),
@@ -161,10 +127,8 @@ def behavioral_intelligence(user, days=30):
         "burnout_risk": burnout_risk(user),
     }
 
-
 def update_profile_snapshot(user):
-    """Persist the rolling momentum/consistency/burnout numbers onto the profile
-    so other features (recommendations, scheduling) can read them cheaply."""
+
     profile = user.profile
     profile.momentum_score = momentum_score(user)
     profile.consistency_score = consistency_score(user)
@@ -173,24 +137,19 @@ def update_profile_snapshot(user):
     return profile
 
 
-# --------------------------------------------------------------------------- #
-# Pattern discovery
-# --------------------------------------------------------------------------- #
-def discover_patterns(user, days=60):
-    """Surface recurring routines, bottlenecks and productive windows.
 
-    Heuristic rules over the activity history. Each pattern has a type, a
-    human-readable message and a confidence so the UI can rank them.
-    """
+
+def discover_patterns(user, days=60):
+
     patterns = []
     since = timezone.now() - timedelta(days=days)
     sessions = list(FocusSession.objects.filter(owner=user, started_at__gte=since))
 
-    # 1. Most productive time-of-day window.
+
     if sessions:
         hour_minutes = defaultdict(int)
         for s in sessions:
-            hour_minutes[timezone.localtime(s.started_at).hour] += s.actual_minutes
+            hour_minutes[timezone.localtime(s.started_at).hour] += s.duration_seconds / 60
         best_hour = max(hour_minutes, key=hour_minutes.get)
         patterns.append(
             {
@@ -200,10 +159,10 @@ def discover_patterns(user, days=60):
             }
         )
 
-        # 2. Best day of the week.
+
         weekday_minutes = defaultdict(int)
         for s in sessions:
-            weekday_minutes[timezone.localtime(s.started_at).strftime("%A")] += s.actual_minutes
+            weekday_minutes[timezone.localtime(s.started_at).strftime("%A")] += s.duration_seconds / 60
         best_day = max(weekday_minutes, key=weekday_minutes.get)
         patterns.append(
             {
@@ -213,7 +172,7 @@ def discover_patterns(user, days=60):
             }
         )
 
-    # 3. Bottleneck: tasks stuck in blocked/in_progress for a long time.
+
     stale = Task.objects.filter(
         owner=user, status__in=["in_progress", "blocked"], updated_at__lte=timezone.now() - timedelta(days=7)
     ).count()
@@ -226,7 +185,7 @@ def discover_patterns(user, days=60):
             }
         )
 
-    # 4. Habit consistency callout.
+
     strong = []
     for habit in Habit.objects.filter(owner=user, is_active=True):
         recent = HabitLog.objects.filter(
@@ -246,17 +205,11 @@ def discover_patterns(user, days=60):
     return patterns
 
 
-# --------------------------------------------------------------------------- #
-# Predictive scheduling
-# --------------------------------------------------------------------------- #
-def predictive_schedule(user, horizon_days=7):
-    """Project which upcoming tasks are likely to be completed on time.
 
-    For each open task with a due date in the horizon we estimate completion
-    confidence from: remaining effort vs. the user's recent daily capacity, the
-    user's historical completion rate, and their current momentum.
-    """
-    from apps.tasks.views import user_completion_rate  # local import avoids cycle
+
+def predictive_schedule(user, horizon_days=7):
+
+    from apps.tasks.views import user_completion_rate
 
     now = timezone.now()
     horizon = now + timedelta(days=horizon_days)
@@ -264,7 +217,7 @@ def predictive_schedule(user, horizon_days=7):
         owner=user, due_date__gte=now, due_date__lte=horizon
     ).exclude(status="done").order_by("due_date")
 
-    # Recent daily focus capacity (minutes).
+
     fb = focus_by_day(user, 14)
     daily_capacity = max(30, statistics.mean([d["minutes"] for d in fb]) if fb else 60)
     completion_rate = user_completion_rate(user)
@@ -294,15 +247,10 @@ def predictive_schedule(user, horizon_days=7):
     }
 
 
-# --------------------------------------------------------------------------- #
-# Timeline replay
-# --------------------------------------------------------------------------- #
-def timeline_activity(user, days=180):
-    """Per-day activity intensity for the timeline replay view.
 
-    Combines completed tasks, focus minutes and habit check-ins into a single
-    0..N intensity so the frontend can animate months of history.
-    """
+
+def timeline_activity(user, days=180):
+
     today = timezone.localdate()
     completed = defaultdict(int)
     for t in Task.objects.filter(
@@ -336,21 +284,14 @@ def timeline_activity(user, days=180):
     return timeline
 
 
-# --------------------------------------------------------------------------- #
-# Weekly retrospective
-# --------------------------------------------------------------------------- #
+
+
 def _week_start(d=None):
     d = d or timezone.localdate()
-    return d - timedelta(days=d.weekday())  # Monday
-
+    return d - timedelta(days=d.weekday())
 
 def build_retrospective(user, week_start=None):
-    """Generate (or refresh) a weekly retrospective for the given week.
 
-    Composes a narrative from the behavioural metrics. The prose is templated
-    rather than LLM-generated to keep the prototype deterministic; the structure
-    mirrors what an LLM prompt would return so it can be swapped later.
-    """
     from .models import Retrospective
 
     week_start = week_start or _week_start()

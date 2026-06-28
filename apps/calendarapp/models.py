@@ -4,7 +4,6 @@ from apps.common.models import OwnedModel
 from apps.projects.models import Project
 from apps.tasks.models import Task
 
-
 class CalendarEvent(OwnedModel):
     KIND = [
         ("event", "Event"),

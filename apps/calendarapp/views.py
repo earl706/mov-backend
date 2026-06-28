@@ -3,9 +3,8 @@ from apps.common.viewsets import OwnedModelViewSet
 from .models import CalendarEvent
 from .serializers import CalendarEventSerializer
 
-
 class CalendarEventViewSet(OwnedModelViewSet):
-    """Calendar events. Filter a date range with ?start_after=&start_before=."""
+
 
     serializer_class = CalendarEventSerializer
     queryset = CalendarEvent.objects.all()

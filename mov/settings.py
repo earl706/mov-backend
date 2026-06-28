@@ -1,10 +1,3 @@
-"""
-Django settings for the Mov platform.
-
-Configuration is environment-driven (see `.env.example`). Storage is pluggable
-between local disk, AWS S3 and DigitalOcean Spaces via STORAGE_BACKEND.
-"""
-
 from datetime import timedelta
 from pathlib import Path
 
@@ -13,7 +6,7 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load repo-root .env first, then backend/.env (backend wins for host dev).
+
 load_dotenv(BASE_DIR.parent / ".env")
 load_dotenv(BASE_DIR / ".env", override=True)
 
@@ -35,9 +28,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
-# --------------------------------------------------------------------------- #
-# Applications
-# --------------------------------------------------------------------------- #
+
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -104,10 +95,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "mov.wsgi.application"
 ASGI_APPLICATION = "mov.asgi.application"
 
-# --------------------------------------------------------------------------- #
-# Database. Defaults to PostgreSQL; falls back to SQLite when no host is set
-# (handy for quick local runs and CI without a database container).
-# --------------------------------------------------------------------------- #
+
 if env("POSTGRES_HOST"):
     DATABASES = {
         "default": {
@@ -144,9 +132,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --------------------------------------------------------------------------- #
-# REST framework + JWT + OpenAPI
-# --------------------------------------------------------------------------- #
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -182,18 +168,14 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": "/api/",
 }
 
-# --------------------------------------------------------------------------- #
-# CORS
-# --------------------------------------------------------------------------- #
+
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
 )
 CORS_ALLOW_CREDENTIALS = True
 
-# --------------------------------------------------------------------------- #
-# Caching / Celery (Redis)
-# --------------------------------------------------------------------------- #
-REDIS_URL = env("REDIS_URL")  # unset → in-memory cache (fine for local runserver)
+
+REDIS_URL = env("REDIS_URL")
 CACHES = {
     "default": (
         {
@@ -214,15 +196,11 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     "generate-weekly-retrospectives": {
         "task": "apps.analytics.tasks.generate_all_retrospectives",
-        # Mondays at 06:00 UTC
         "schedule": timedelta(days=7),
     },
 }
 
-# --------------------------------------------------------------------------- #
-# Storage — local | s3 | spaces (S3-compatible). DigitalOcean Spaces uses the
-# same backend as S3; only the endpoint differs.
-# --------------------------------------------------------------------------- #
+
 STORAGE_BACKEND = env("STORAGE_BACKEND", "local").lower()
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -238,7 +216,7 @@ if STORAGE_BACKEND in {"s3", "spaces"}:
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
     AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", "us-east-1")
-    # Spaces / custom S3 endpoints (leave empty for vanilla AWS S3).
+
     AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL") or None
     AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN") or None
     AWS_DEFAULT_ACL = None

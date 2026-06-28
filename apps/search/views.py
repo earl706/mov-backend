@@ -1,10 +1,3 @@
-"""Unified search across the user's entities.
-
-A single GET /api/search/?q=... returns grouped, ranked results from tasks,
-notes, projects, habits and people. For a prototype this uses icontains; a
-production build would back this with PostgreSQL full-text search or an external
-index, but the response contract would be unchanged.
-"""
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
@@ -17,7 +10,6 @@ from apps.projects.models import Project
 from apps.tasks.models import Task
 
 LIMIT_PER_GROUP = 8
-
 
 class SearchView(APIView):
     @extend_schema(

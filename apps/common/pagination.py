@@ -1,14 +1,8 @@
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-
 class DefaultPagination(PageNumberPagination):
-    """Page-number pagination with a client-tunable page size.
 
-    Responses include the standard count/next/previous plus a `page` and
-    `total_pages` convenience block so the frontend can render pagers without
-    parsing the next/previous URLs.
-    """
 
     page_size = 20
     page_size_query_param = "page_size"

@@ -4,7 +4,6 @@ from rest_framework import serializers
 from .models import Project
 from .services import compute_project_health
 
-
 class ProjectSerializer(serializers.ModelSerializer):
     health = serializers.SerializerMethodField()
     task_count = serializers.IntegerField(source="tasks.count", read_only=True)
@@ -29,5 +28,5 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.DictField())
     def get_health(self, obj):
-        # `tasks` is prefetched in the viewset to avoid N+1 queries.
+
         return compute_project_health(obj, tasks=obj.tasks.all())

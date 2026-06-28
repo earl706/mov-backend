@@ -1,4 +1,4 @@
-#!/Users/earlbenedictc.dumaraog/nameless-productivity-app/backend/backend-env/bin/python
+#!/Users/earlbenedictc.dumaraog/nameless-productivity-app/backend/backend-env/bin/python3.13
 
 import sys
 import json

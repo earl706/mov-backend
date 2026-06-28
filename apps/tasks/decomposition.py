@@ -1,15 +1,6 @@
-"""AI-assisted task decomposition.
-
-A production deployment would call an LLM here. To keep the prototype fully
-self-contained and deterministic (and testable without network/keys), this uses
-a heuristic "planner" that recognises common task archetypes from the title and
-description and emits a sensible subtask checklist. The interface
-(`decompose(title, description)` -> list[dict]) is identical to what an LLM-backed
-implementation would expose, so swapping it out later is a one-line change.
-"""
 import re
 
-# Archetype -> ordered checklist. Keyed by trigger keywords found in the task.
+
 _TEMPLATES = {
     ("write", "draft", "blog", "article", "essay", "post"): [
         ("Outline key points and structure", 20),
@@ -51,9 +42,8 @@ _GENERIC = [
     ("Wrap up and capture follow-ups", 10),
 ]
 
-
 def decompose(title, description=""):
-    """Return a list of {title, estimated_minutes, ai_generated} subtasks."""
+
     text = f"{title} {description}".lower()
     words = set(re.findall(r"[a-z]+", text))
 

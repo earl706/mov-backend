@@ -2,10 +2,8 @@ from django.db import models
 
 from apps.common.models import OwnedModel
 
-
 class Person(OwnedModel):
-    """A collaborator / stakeholder. People are first-class nodes in the graph
-    so work can be associated with the humans involved."""
+
 
     name = models.CharField(max_length=200)
     role = models.CharField(max_length=120, blank=True)
@@ -15,15 +13,8 @@ class Person(OwnedModel):
     def __str__(self):
         return self.name
 
-
 class Link(OwnedModel):
-    """An explicit, typed edge between any two entities in the knowledge graph.
 
-    Entities are referenced by (type, ref_id) where `ref_id` is the integer PK of
-    the target model. Implicit edges (e.g. task->project) are derived at query
-    time; this model captures *additional* relationships a user draws manually,
-    such as "this note relates to that habit" or "Alice owns this task".
-    """
 
     ENTITY_TYPES = [
         ("project", "Project"),

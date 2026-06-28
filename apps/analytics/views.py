@@ -23,7 +23,6 @@ from .services import (
     update_profile_snapshot,
 )
 
-
 def _days_param(request, default=30, maximum=365):
     try:
         days = int(request.query_params.get("days", default))
@@ -31,9 +30,8 @@ def _days_param(request, default=30, maximum=365):
         days = default
     return max(1, min(maximum, days))
 
-
 class DashboardView(APIView):
-    """Aggregated counts and quick stats for the home dashboard."""
+
 
     def get(self, request):
         user = request.user
@@ -67,21 +65,18 @@ class DashboardView(APIView):
             }
         )
 
-
 class BehavioralIntelligenceView(APIView):
     @extend_schema(parameters=[OpenApiParameter("days", int)], responses={200: dict})
     def get(self, request):
         days = _days_param(request)
         data = behavioral_intelligence(request.user, days=days)
-        # Keep the cached profile snapshot fresh on each dashboard view.
+
         update_profile_snapshot(request.user)
         return Response(data)
-
 
 class PatternsView(APIView):
     def get(self, request):
         return Response({"patterns": discover_patterns(request.user)})
-
 
 class PredictiveScheduleView(APIView):
     @extend_schema(parameters=[OpenApiParameter("horizon_days", int)], responses={200: dict})
@@ -92,18 +87,16 @@ class PredictiveScheduleView(APIView):
             horizon = 7
         return Response(predictive_schedule(request.user, horizon_days=max(1, min(30, horizon))))
 
-
 class TimelineView(APIView):
     @extend_schema(parameters=[OpenApiParameter("days", int)], responses={200: dict})
     def get(self, request):
         days = _days_param(request, default=180, maximum=365)
         return Response({"days": days, "timeline": timeline_activity(request.user, days=days)})
 
-
 class RetrospectiveViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
-    """Browse weekly retrospectives; `generate` builds the current week on demand."""
+
 
     serializer_class = RetrospectiveSerializer
     queryset = Retrospective.objects.none()

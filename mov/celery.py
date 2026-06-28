@@ -1,4 +1,3 @@
-"""Celery application for background jobs (analytics rollups, retrospectives)."""
 import os
 
 from celery import Celery
@@ -9,7 +8,6 @@ app = Celery("mov")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
-
 @app.task(bind=True, ignore_result=True)
-def debug_task(self):  # pragma: no cover - utility task
+def debug_task(self):
     print(f"Request: {self.request!r}")

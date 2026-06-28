@@ -2,7 +2,6 @@ from django.db import models
 
 from apps.common.models import OwnedModel
 
-
 class Project(OwnedModel):
     STATUS = [
         ("active", "Active"),
@@ -13,7 +12,7 @@ class Project(OwnedModel):
 
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    color = models.CharField(max_length=9, default="#6366f1")  # hex, used by UI
+    color = models.CharField(max_length=9, default="#6366f1")
     status = models.CharField(max_length=16, choices=STATUS, default="active")
     due_date = models.DateField(null=True, blank=True)
     is_favorite = models.BooleanField(default=False)

@@ -4,7 +4,6 @@ from django.utils import timezone
 from apps.common.models import OwnedModel
 from apps.projects.models import Project
 
-
 class Task(OwnedModel):
     STATUS = [
         ("todo", "To do"),
@@ -20,7 +19,7 @@ class Task(OwnedModel):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=16, choices=STATUS, default="todo", db_index=True)
 
-    # Scoring inputs (1..5 scales). See apps.tasks.scoring.
+
     importance = models.PositiveSmallIntegerField(default=3)
     urgency = models.PositiveSmallIntegerField(default=3)
     estimated_minutes = models.PositiveIntegerField(default=30)
@@ -42,7 +41,7 @@ class Task(OwnedModel):
         return self.title
 
     def mark_status(self, status):
-        """Transition status and maintain the started/completed timestamps."""
+
         self.status = status
         now = timezone.now()
         if status == "in_progress" and not self.started_at:
@@ -61,14 +60,13 @@ class Task(OwnedModel):
         done = self.subtasks.filter(is_done=True).count()
         return round(100 * done / total, 1)
 
-
 class Subtask(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="subtasks")
     title = models.CharField(max_length=300)
     is_done = models.BooleanField(default=False)
     estimated_minutes = models.PositiveIntegerField(default=15)
     order = models.IntegerField(default=0)
-    # Marks subtasks created by the AI decomposition helper for UI affordances.
+
     ai_generated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

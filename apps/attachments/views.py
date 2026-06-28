@@ -5,7 +5,6 @@ from apps.common.viewsets import OwnedModelViewSet
 from .models import Attachment
 from .serializers import AttachmentSerializer
 
-
 class AttachmentViewSet(OwnedModelViewSet):
     serializer_class = AttachmentSerializer
     queryset = Attachment.objects.all()

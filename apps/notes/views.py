@@ -3,7 +3,6 @@ from apps.common.viewsets import OwnedModelViewSet
 from .models import Note
 from .serializers import NoteSerializer
 
-
 class NoteViewSet(OwnedModelViewSet):
     serializer_class = NoteSerializer
     queryset = Note.objects.all().select_related("project")

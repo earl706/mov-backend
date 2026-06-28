@@ -1,18 +1,10 @@
-"""User accounts and the adaptive productivity profile.
-
-The `ProductivityProfile` is the heart of Mov's personalization: it stores the
-weights that drive task prioritization and a rolling snapshot of behavioural
-metrics that the analytics layer recomputes. Recommendations elsewhere read from
-this profile so that personalization is centralized and explainable.
-"""
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
-
 class UserManager(BaseUserManager):
-    """Email-as-username manager."""
+
 
     use_in_migrations = True
 
@@ -35,9 +27,8 @@ class UserManager(BaseUserManager):
         extra.setdefault("is_superuser", True)
         return self._create_user(email, password, **extra)
 
-
 class User(AbstractUser):
-    # Drop username; authenticate by email.
+
     username = None
     email = models.EmailField(unique=True)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
@@ -53,15 +44,8 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-
 class ProductivityProfile(models.Model):
-    """Per-user personalization state.
 
-    Scoring weights are normalized client- and server-side but stored raw so a
-    user can express, e.g., "deadlines matter twice as much as effort to me".
-    `chronotype` and `focus_window_*` let predictive scheduling place work where
-    the user is historically most effective.
-    """
 
     CHRONOTYPES = [
         ("early", "Early bird"),
@@ -71,7 +55,7 @@ class ProductivityProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
 
-    # Task prioritization weights (see apps.tasks.scoring).
+
     weight_importance = models.FloatField(default=1.0)
     weight_urgency = models.FloatField(default=1.0)
     weight_deadline = models.FloatField(default=1.2)
@@ -79,13 +63,13 @@ class ProductivityProfile(models.Model):
     weight_completion_history = models.FloatField(default=0.6)
 
     chronotype = models.CharField(max_length=16, choices=CHRONOTYPES, default="balanced")
-    focus_window_start = models.PositiveSmallIntegerField(default=9)  # hour of day
+    focus_window_start = models.PositiveSmallIntegerField(default=9)
     focus_window_end = models.PositiveSmallIntegerField(default=12)
     daily_focus_goal_minutes = models.PositiveIntegerField(default=120)
 
-    # Rolling behavioural snapshot (recomputed by analytics; cached here for speed).
+
     momentum_score = models.FloatField(default=50.0)
-    burnout_risk = models.FloatField(default=0.0)  # 0..1
+    burnout_risk = models.FloatField(default=0.0)
     consistency_score = models.FloatField(default=50.0)
 
     updated_at = models.DateTimeField(auto_now=True)

@@ -14,23 +14,18 @@ from .models import Subtask, Task
 from .scoring import score_task
 from .serializers import SubtaskSerializer, TaskSerializer, TaskWriteSerializer
 
-
 def user_completion_rate(user, days=30):
-    """Share of the user's recently-due/created tasks that got completed.
 
-    Used as the "historical completion rate" scoring factor and by analytics.
-    """
     since = timezone.now() - timedelta(days=days)
     qs = Task.objects.filter(owner=user, created_at__gte=since)
     total = qs.count()
     if not total:
-        return 0.5  # neutral prior for new users
+        return 0.5
     done = qs.filter(status="done").count()
     return round(done / total, 3)
 
-
 class TaskViewSet(OwnedModelViewSet):
-    """Tasks with prioritization, status transitions and AI decomposition."""
+
 
     queryset = Task.objects.all().prefetch_related("subtasks").select_related("project")
     filterset_fields = ["status", "project", "importance", "urgency"]
@@ -50,12 +45,7 @@ class TaskViewSet(OwnedModelViewSet):
 
     @action(detail=False, methods=["get"])
     def prioritized(self, request):
-        """Return open tasks sorted by their dynamic priority score (desc).
 
-        Sorting happens in Python because the score depends on per-user weights
-        and time; for a prototype dataset this is cheap and keeps the formula in
-        one place. At scale this would be precomputed into a denormalized column.
-        """
         weights = request.user.profile.weights()
         rate = user_completion_rate(request.user)
         tasks = list(
@@ -91,12 +81,7 @@ class TaskViewSet(OwnedModelViewSet):
     @extend_schema(request=None, responses={201: SubtaskSerializer(many=True)})
     @action(detail=True, methods=["post"])
     def decompose(self, request, pk=None):
-        """Generate and persist AI subtasks for this task.
 
-        Idempotency: regenerating clears previously AI-generated subtasks so the
-        user can re-run decomposition without accumulating duplicates, while
-        keeping any subtasks they added manually.
-        """
         task = self.get_object()
         task.subtasks.filter(ai_generated=True).delete()
         proposals = decompose(task.title, task.description)
@@ -107,14 +92,8 @@ class TaskViewSet(OwnedModelViewSet):
             SubtaskSerializer(created, many=True).data, status=status.HTTP_201_CREATED
         )
 
-
 class SubtaskViewSet(viewsets.ModelViewSet):
-    """Subtasks, scoped to tasks the requesting user owns.
 
-    Subtasks have no `owner` of their own; ownership is inherited from the parent
-    task. Scoping the queryset by `task__owner` means object lookups for another
-    user's subtask return 404, which is the desired isolation.
-    """
 
     serializer_class = SubtaskSerializer
     filterset_fields = ["task", "is_done"]
@@ -125,7 +104,7 @@ class SubtaskViewSet(viewsets.ModelViewSet):
         return Subtask.objects.filter(task__owner=self.request.user).select_related("task")
 
     def perform_create(self, serializer):
-        # Ensure the parent task belongs to the user.
+
         task = serializer.validated_data["task"]
         if task.owner != self.request.user:
             from rest_framework.exceptions import PermissionDenied

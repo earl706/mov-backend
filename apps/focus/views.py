@@ -11,7 +11,6 @@ from apps.tasks.models import Task
 from .models import FocusSession, WorkContextSnapshot
 from .serializers import FocusSessionSerializer, WorkContextSnapshotSerializer
 
-
 class FocusSessionViewSet(OwnedModelViewSet):
     serializer_class = FocusSessionSerializer
     queryset = FocusSession.objects.all().select_related("task")
@@ -20,28 +19,25 @@ class FocusSessionViewSet(OwnedModelViewSet):
 
     @action(detail=False, methods=["get"])
     def today(self, request):
-        """Aggregate of today's focus minutes vs. the user's daily goal."""
+
         start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         sessions = self.get_queryset().filter(started_at__gte=start)
-        total = sum(s.actual_minutes for s in sessions)
+        total_seconds = sum(s.actual_seconds or s.actual_minutes * 60 for s in sessions)
         goal = getattr(request.user.profile, "daily_focus_goal_minutes", 120)
+        goal_seconds = goal * 60
         return Response(
             {
-                "minutes": total,
+                "minutes": round(total_seconds / 60, 1),
+                "seconds": total_seconds,
                 "goal_minutes": goal,
+                "goal_seconds": goal_seconds,
                 "sessions": sessions.count(),
-                "progress": round(100 * total / goal, 1) if goal else 0,
+                "progress": round(100 * total_seconds / goal_seconds, 1) if goal_seconds else 0,
             }
         )
 
-
 class WorkContextSnapshotViewSet(OwnedModelViewSet):
-    """Smart session recovery.
 
-    `recover` builds a fresh snapshot from the user's most recently touched
-    tasks and notes — what they were likely working on before an interruption.
-    Snapshots can also be saved explicitly and listed for later resumption.
-    """
 
     serializer_class = WorkContextSnapshotSerializer
     queryset = WorkContextSnapshot.objects.all()

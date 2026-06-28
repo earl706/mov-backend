@@ -6,7 +6,6 @@ from apps.common.viewsets import OwnedModelViewSet
 from .models import Notification
 from .serializers import NotificationSerializer
 
-
 class NotificationViewSet(OwnedModelViewSet):
     serializer_class = NotificationSerializer
     queryset = Notification.objects.all()

@@ -4,7 +4,6 @@ from rest_framework import serializers
 from .models import Subtask, Task
 from .scoring import score_task
 
-
 class SubtaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subtask
@@ -19,7 +18,6 @@ class SubtaskSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at", "ai_generated"]
-
 
 class TaskSerializer(serializers.ModelSerializer):
     subtasks = SubtaskSerializer(many=True, read_only=True)
@@ -55,11 +53,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.DictField())
     def get_priority(self, obj):
-        """Attach the dynamic priority score using the requester's weights.
 
-        `completion_rate` is provided by the view via serializer context so we
-        don't recompute it per-row.
-        """
         request = self.context.get("request")
         weights = None
         if request and request.user.is_authenticated and hasattr(request.user, "profile"):
@@ -67,9 +61,8 @@ class TaskSerializer(serializers.ModelSerializer):
         completion_rate = self.context.get("completion_rate", 0.5)
         return score_task(obj, weights=weights, completion_rate=completion_rate)
 
-
 class TaskWriteSerializer(TaskSerializer):
-    """Identical fields but used for create/update where `priority` is irrelevant."""
+
 
     class Meta(TaskSerializer.Meta):
         pass

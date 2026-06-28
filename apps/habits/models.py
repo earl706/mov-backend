@@ -2,7 +2,6 @@ from django.db import models
 
 from apps.common.models import OwnedModel
 
-
 class Habit(OwnedModel):
     CADENCE = [("daily", "Daily"), ("weekly", "Weekly")]
 
@@ -17,10 +16,8 @@ class Habit(OwnedModel):
     def __str__(self):
         return self.name
 
-
 class HabitLog(models.Model):
-    """A single completion entry. Uniqueness per (habit, date) keeps idempotency
-    for daily check-ins while still allowing weekly habits multiple logs."""
+
 
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name="logs")
     date = models.DateField()

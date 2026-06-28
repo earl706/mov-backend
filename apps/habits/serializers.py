@@ -3,13 +3,11 @@ from rest_framework import serializers
 from .models import Habit, HabitLog
 from .momentum import compute_momentum
 
-
 class HabitLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = HabitLog
         fields = ["id", "habit", "date", "note", "created_at"]
         read_only_fields = ["id", "created_at"]
-
 
 class HabitSerializer(serializers.ModelSerializer):
     momentum = serializers.SerializerMethodField()
